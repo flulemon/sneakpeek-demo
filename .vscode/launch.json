@@ -28,6 +28,18 @@
       }
     },
     {
+      "name": "Run server (no-read-only)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/demo/app.py",
+      "args": ["--no-read-only"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
       "name": "Run handler",
       "type": "python",
       "request": "launch",
