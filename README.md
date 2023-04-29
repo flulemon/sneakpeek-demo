@@ -2,13 +2,13 @@
 
 Demo project for [Sneakpeek framework](https://github.com/flulemon/sneakpeek).
 
-# Run pre-built demo
+## Run pre-built demo
 
 ```bash
 docker run -it -rm -p 8080:8080 -p 9090:9090 flulemon/sneakpeek-demo:latest
 ```
 
-# How to run locally
+## How to run locally
 
 Install dependencies ([Poetry](https://python-poetry.org/) is required):
 
@@ -30,7 +30,7 @@ poetry run app
 
 Open http://localhost:8080
 
-# Run in Docker
+## Run in Docker
 
 Build image:
 
