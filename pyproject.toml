@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "demo"
-version = "0.0.1"
+version = "0.1.6"
 description = "Demo for Sneakpeek framework"
 authors = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
 license = "BSD 3-Clause"
@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-sneakpeek-py = "^0.1.5"
+sneakpeek-py = "0.1.6"
 
 
 [tool.poetry.group.dev.dependencies]
