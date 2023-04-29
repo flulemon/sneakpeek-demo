@@ -27,11 +27,8 @@ jobs:
             flulemon/sneakpeek-demo
           tags: |
             type=schedule
-            type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=sha
 
       - name: Set up Docker Buildx
