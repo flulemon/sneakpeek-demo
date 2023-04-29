@@ -41,7 +41,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--read-only",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Whether to allow modifying list of scrapers or not",
 )

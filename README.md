@@ -5,7 +5,7 @@ Demo project for [Sneakpeek framework](https://github.com/flulemon/sneakpeek).
 ## Run pre-built demo
 
 ```bash
-docker run -it -rm -p 8080:8080 -p 9090:9090 flulemon/sneakpeek-demo:latest
+docker run -it --rm -p 8080:8080 -p 9090:9090 flulemon/sneakpeek-demo:latest
 ```
 
 ## How to run locally
