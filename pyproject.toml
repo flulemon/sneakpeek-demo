@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "demo"
+version = "0.0.1"
+description = "Demo for Sneakpeek framework"
+authors = ["Dan Yazovsky <daniil.yazovsky@gmail.com>"]
+license = "BSD 3-Clause"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sneakpeek-py = "^0.1.5"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+app = "demo.app:main"
+debug-handler = "demo.demo_scraper:main"
