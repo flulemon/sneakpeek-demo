@@ -1,14 +1,8 @@
 import argparse
 import random
 
-from sneakpeek.lib.models import Scraper, ScraperJobPriority, ScraperSchedule
-from sneakpeek.lib.storage.base import ScrapersStorage
-from sneakpeek.lib.storage.in_memory_storage import (
-    InMemoryLeaseStorage,
-    InMemoryScraperJobsStorage,
-    InMemoryScrapersStorage,
-)
 from sneakpeek.logging import configure_logging
+from sneakpeek.models import Scraper, ScraperJobPriority, ScraperSchedule
 from sneakpeek.plugins.rate_limiter_plugin import (
     RateLimiterPlugin,
     RateLimiterPluginConfig,
@@ -21,6 +15,12 @@ from sneakpeek.plugins.user_agent_injecter_plugin import (
 )
 from sneakpeek.scraper_config import ScraperConfig
 from sneakpeek.server import SneakpeekServer
+from sneakpeek.storage.base import ScrapersStorage
+from sneakpeek.storage.in_memory_storage import (
+    InMemoryLeaseStorage,
+    InMemoryScraperJobsStorage,
+    InMemoryScrapersStorage,
+)
 
 from demo.demo_scraper import DemoScraper
 
