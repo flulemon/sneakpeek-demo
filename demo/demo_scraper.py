@@ -4,15 +4,16 @@ import logging
 from urllib.parse import urljoin
 
 from pydantic import BaseModel
-from sneakpeek.scraper_context import ScraperContext
-from sneakpeek.scraper_handler import ScraperHandler
-from sneakpeek.runner import LocalRunner
-from sneakpeek.scraper_config import ScraperConfig
-from sneakpeek.plugins.requests_logging_plugin import RequestsLoggingPlugin
-from sneakpeek.plugins.rate_limiter_plugin import (
-    RateLimiterPlugin,
-    RateLimiterPluginConfig,
+from sneakpeek.logging import configure_logging
+from sneakpeek.middleware.parser import ParserMiddleware
+from sneakpeek.middleware.rate_limiter_middleware import (
+    RateLimiterMiddleware,
+    RateLimiterMiddlewareConfig,
 )
+from sneakpeek.middleware.requests_logging_middleware import RequestsLoggingMiddleware
+from sneakpeek.scraper.context import ScraperContext
+from sneakpeek.scraper.model import ScraperConfig, ScraperContextABC, ScraperHandler
+from sneakpeek.scraper.runner import ScraperRunner
 
 
 # Demo class that holds information that
@@ -53,8 +54,8 @@ class DemoScraper(ScraperHandler):
         url: str,
         page: str,
     ) -> PageMetadata:
-        title = context.regex(page, r"<title>(?P<title>[^<]+)")
-        description = context.regex(
+        title = context.parser.regex(page, r"<title>(?P<title>[^<]+)")
+        description = context.parser.regex(
             page, r'meta content="(?P<description>[^"]+)" property="og:description'
         )
 
@@ -67,20 +68,20 @@ class DemoScraper(ScraperHandler):
     # Extract all links in the page
     def extract_next_links(
         self,
-        context: ScraperContext,
+        context: ScraperContextABC,
         start_url: str,
         page: str,
     ) -> list[str]:
         return [
             urljoin(start_url, link.groups["href"])
-            for link in context.regex(page, r'a[^<]+href="(?P<href>[^"]+)')
+            for link in context.parser.regex(page, r'a[^<]+href="(?P<href>[^"]+)')
         ]
 
     # This function is called by the worker to execute the logic
-    # The only argument that is passed is `sneakpeek.scraper_context.ScraperContext`
+    # The only argument that is passed is `sneakpeek.scraper_context.ScraperContextABC`
     # It implements basic async HTTP client and also provides parameters
     # that are defined in the scraper config
-    async def run(self, context: ScraperContext) -> str:
+    async def run(self, context: ScraperContextABC) -> str:
         params = DemoScraperParams.parse_obj(context.params)
 
         # Download start URL
@@ -115,20 +116,23 @@ class DemoScraper(ScraperHandler):
         )
 
 
-def main():
-    LocalRunner.run(
+async def main():
+    configure_logging(logging.DEBUG)
+    result = await ScraperRunner.debug_handler(
         DemoScraper(),
-        ScraperConfig(
+        config=ScraperConfig(
             params=DemoScraperParams(
                 start_url="https://www.ycombinator.com/",
                 max_pages=20,
             ).dict(),
         ),
-        plugins=[
-            RequestsLoggingPlugin(),
-            RateLimiterPlugin(RateLimiterPluginConfig()),
+        middlewares=[
+            RequestsLoggingMiddleware(),
+            RateLimiterMiddleware(RateLimiterMiddlewareConfig()),
+            ParserMiddleware(),
         ],
     )
+    logging.info(f"Finished scraper with result: {result}")
 
 
 if __name__ == "__main__":

@@ -1,26 +1,23 @@
 import argparse
 import random
+from uuid import uuid4
 
 from sneakpeek.logging import configure_logging
-from sneakpeek.models import Scraper, ScraperJobPriority, ScraperSchedule
-from sneakpeek.plugins.rate_limiter_plugin import (
-    RateLimiterPlugin,
-    RateLimiterPluginConfig,
+from sneakpeek.middleware.parser import ParserMiddleware
+from sneakpeek.middleware.rate_limiter_middleware import (
+    RateLimiterMiddleware,
+    RateLimiterMiddlewareConfig,
 )
-from sneakpeek.plugins.requests_logging_plugin import RequestsLoggingPlugin
-from sneakpeek.plugins.robots_txt_plugin import RobotsTxtPlugin
-from sneakpeek.plugins.user_agent_injecter_plugin import (
-    UserAgentInjecterPlugin,
-    UserAgentInjecterPluginConfig,
-)
-from sneakpeek.scraper_config import ScraperConfig
+from sneakpeek.middleware.requests_logging_middleware import RequestsLoggingMiddleware
+from sneakpeek.queue.in_memory_storage import InMemoryQueueStorage
+from sneakpeek.queue.model import TaskPriority
+from sneakpeek.scheduler.in_memory_lease_storage import InMemoryLeaseStorage
+from sneakpeek.scheduler.model import TaskSchedule
+from sneakpeek.scraper.in_memory_storage import InMemoryScraperStorage
+from sneakpeek.scraper.model import Scraper, ScraperConfig, ScraperStorageABC
 from sneakpeek.server import SneakpeekServer
-from sneakpeek.storage.base import ScrapersStorage
-from sneakpeek.storage.in_memory_storage import (
-    InMemoryLeaseStorage,
-    InMemoryScraperJobsStorage,
-    InMemoryScrapersStorage,
-)
+from sneakpeek.session_loggers.base import SessionLogger
+from sneakpeek.session_loggers.file_logger import FileLoggerHandler
 
 from demo.demo_scraper import DemoScraper
 
@@ -34,9 +31,7 @@ parser.add_argument(
     help="URLs to create demo scrapers for",
     default=[
         "https://google.com",
-        "https://www.blogger.com",
-        "https://youtube.com",
-        "https://www.ycombinator.com/",
+        "https://www.docker.com/",
     ],
 )
 parser.add_argument(
@@ -50,50 +45,55 @@ parser.add_argument(
 def get_scrapers(urls: list[str]) -> list[Scraper]:
     return [
         Scraper(
-            id=id,
+            id=str(uuid4()),
             name=f"Demo Scraper ({url})",
-            schedule=ScraperSchedule.EVERY_MINUTE,
+            schedule=TaskSchedule.EVERY_MINUTE,
             handler=DemoScraper().name,
             config=ScraperConfig(params={"start_url": url, "max_pages": 5}),
             schedule_priority=random.choice(
                 [
-                    ScraperJobPriority.HIGH,
-                    ScraperJobPriority.UTMOST,
-                    ScraperJobPriority.NORMAL,
+                    TaskPriority.HIGH,
+                    TaskPriority.UTMOST,
+                    TaskPriority.NORMAL,
                 ]
             ),
         )
-        for id, url in enumerate(urls)
+        for url in urls
     ]
 
 
-def get_scrapers_storage(urls: list[str], is_read_only: bool) -> ScrapersStorage:
-    return InMemoryScrapersStorage(
-        scrapers=get_scrapers(urls), is_read_only=is_read_only
+def get_scraper_storage(urls: list[str], is_read_only: bool) -> ScraperStorageABC:
+    return InMemoryScraperStorage(
+        initial_scrapers=get_scrapers(urls),
+        is_read_only=is_read_only,
     )
 
 
-def get_server(urls: list[str], is_read_only: bool) -> SneakpeekServer:
+def get_server(
+    urls: list[str],
+    is_read_only: bool,
+    session_logger: SessionLogger,
+) -> SneakpeekServer:
     return SneakpeekServer.create(
         handlers=[DemoScraper()],
-        scrapers_storage=get_scrapers_storage(urls, is_read_only),
-        jobs_storage=InMemoryScraperJobsStorage(),
+        scraper_storage=get_scraper_storage(urls, is_read_only),
+        queue_storage=InMemoryQueueStorage(),
         lease_storage=InMemoryLeaseStorage(),
-        plugins=[
-            RequestsLoggingPlugin(),
-            RobotsTxtPlugin(),
-            RateLimiterPlugin(RateLimiterPluginConfig(max_rpm=60)),
-            UserAgentInjecterPlugin(
-                UserAgentInjecterPluginConfig(use_external_data=False)
-            ),
+        middlewares=[
+            RequestsLoggingMiddleware(),
+            RateLimiterMiddleware(RateLimiterMiddlewareConfig(max_rpm=60)),
+            ParserMiddleware(),
         ],
+        add_dynamic_scraper_handler=True,
+        session_logger_handler=session_logger,
     )
 
 
 def main():
+    session_logger = FileLoggerHandler(f"logs/{uuid4()}/")
     args = parser.parse_args()
-    server = get_server(args.urls, args.read_only)
-    configure_logging()
+    server = get_server(args.urls, args.read_only, session_logger)
+    configure_logging(session_logger_handler=session_logger)
     server.serve()
 
 
